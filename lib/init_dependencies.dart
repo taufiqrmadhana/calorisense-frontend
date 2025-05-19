@@ -1,6 +1,8 @@
+import 'package:calorisense/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:calorisense/features/auth/data/dataresources/auth_remote_data_source.dart';
 import 'package:calorisense/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:calorisense/features/auth/domain/repository/auth_repository.dart';
+import 'package:calorisense/features/auth/domain/usecases/current_user.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_login.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_signup.dart';
 import 'package:calorisense/features/auth/presentation/bloc/auth_bloc.dart';
@@ -18,6 +20,9 @@ Future<void> initDependencies() async {
   );
 
   serviceLocator.registerLazySingleton(() => supabase.client);
+
+  // core
+  serviceLocator.registerLazySingleton(() => AppUserCubit());
 }
 
 void _initAuth() {
@@ -33,8 +38,14 @@ void _initAuth() {
     //UseCases
     ..registerFactory(() => UserSignup(serviceLocator()))
     ..registerFactory(() => UserLogin(serviceLocator()))
+    ..registerFactory(() => CurrentUser(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
-      () => AuthBloc(userSignUp: serviceLocator(), userLogin: serviceLocator()),
+      () => AuthBloc(
+        userSignUp: serviceLocator(),
+        userLogin: serviceLocator(),
+        currentUser: serviceLocator(),
+        appUserCubit: serviceLocator(),
+      ),
     );
 }

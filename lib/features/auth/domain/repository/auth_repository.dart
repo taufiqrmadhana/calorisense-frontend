@@ -1,5 +1,5 @@
 import 'package:calorisense/core/error/failures.dart';
-import 'package:calorisense/features/auth/domain/entities/user.dart';
+import 'package:calorisense/core/common/entities/user.dart';
 import 'package:fpdart/fpdart.dart';
 
 abstract interface class AuthRepository {
@@ -12,4 +12,5 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+  Future<Either<Failure, User>> currentUser();
 }

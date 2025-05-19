@@ -9,6 +9,9 @@ class AppPalette {
   static const Color gradient2 = Color(0xFF43A047);
   static const Color gradient3 = Color(0xFF2E7D32);
 
+  static const Color lightgreen = Color.fromARGB(255, 218, 254, 220);
+  static const Color lightblue = Color.fromARGB(255, 224, 241, 255);
+
   static const Color borderColor = Color.fromARGB(255, 222, 225, 227);
   static const Color borderColorPressed = Color.fromARGB(255, 208, 215, 219);
 
