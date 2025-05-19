@@ -1,12 +1,13 @@
 import 'package:calorisense/features/home/presentation/pages/today_nutrition.dart';
 import 'package:calorisense/features/home/presentation/widgets/action_button.dart';
-import 'package:calorisense/features/home/presentation/widgets/bottom_navbar.dart';
+import 'package:calorisense/core/common/widgets/bottom_navbar.dart';
 import 'package:calorisense/features/home/presentation/widgets/daily_stats.dart';
 import 'package:calorisense/features/home/presentation/widgets/meal_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:calorisense/core/theme/pallete.dart';
 
 class HomePage extends StatelessWidget {
+  static route() => MaterialPageRoute(builder: (context) => HomePage());
   const HomePage({super.key});
 
   @override

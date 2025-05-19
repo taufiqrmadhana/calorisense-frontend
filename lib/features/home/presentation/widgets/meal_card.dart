@@ -43,7 +43,6 @@ class _MealCardState extends State<MealCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

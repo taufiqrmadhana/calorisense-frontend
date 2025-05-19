@@ -34,13 +34,12 @@ class _TodayNutritionPageState extends State<TodayNutritionPage> {
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: constraints.maxHeight, // Fill full height
+                minHeight: constraints.maxHeight, 
               ),
               child: IntrinsicHeight(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Daily goal section
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
@@ -66,7 +65,6 @@ class _TodayNutritionPageState extends State<TodayNutritionPage> {
                       ),
                     ),
 
-                    // Macronutrients section
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
@@ -124,7 +122,6 @@ class _TodayNutritionPageState extends State<TodayNutritionPage> {
                       ),
                     ),
 
-                    // Meal section
                     ExpandedSection(
                       child: Container(
                         width: double.infinity,
@@ -240,6 +237,6 @@ class ExpandedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(child: child); // or remove if not in a Flex
+    return Expanded(child: child); 
   }
 }

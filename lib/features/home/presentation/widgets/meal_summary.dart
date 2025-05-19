@@ -44,7 +44,6 @@ class MealSummaryWidget extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Meal details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +80,6 @@ class MealSummaryWidget extends StatelessWidget {
             ),
           ),
 
-          // Calories
           Text(
             "$calories cal",
             style: const TextStyle(
@@ -128,13 +126,13 @@ class MealSummaryWidget extends StatelessWidget {
   Color _getMealBackgroundColor(String mealType) {
     switch (mealType.toLowerCase()) {
       case 'breakfast':
-        return Colors.amber.shade100; // Latar yang lebih terang untuk amber
+        return Colors.amber.shade100; 
       case 'lunch':
-        return Colors.deepOrange.shade100; // Latar yang ringan untuk orange
+        return Colors.deepOrange.shade100;
       case 'dinner':
-        return Colors.purple.shade100; // Ungu lembut untuk dinner
+        return Colors.purple.shade100; 
       case 'snack':
-        return Colors.lightGreen.shade100; // Latar hijau pucat
+        return Colors.lightGreen.shade100; 
       default:
         return AppPalette.primaryColor;
     }
