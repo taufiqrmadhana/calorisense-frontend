@@ -9,38 +9,19 @@ class BottomNavBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppPalette.white,
-        border: const Border(
-          top: BorderSide(color: AppPalette.borderColor, width: 2),
+        border: Border(
+          top: BorderSide(color: AppPalette.borderColor, width: 1.5),
         ),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(
-            0,
-            'Home',
-            Icons.home_filled,
-            Icons.home_outlined,
-            context,
-          ),
-          _buildNavItem(1, 'Chat', Icons.chat, Icons.chat_outlined, context),
-          _buildNavItem(
-            2,
-            'Reports',
-            Icons.stacked_line_chart,
-            Icons.stacked_line_chart,
-            context,
-          ),
-          _buildNavItem(
-            3,
-            'Profile',
-            Icons.person,
-            Icons.person_outline,
-            context,
-          ),
+          _buildNavItem(0, 'Home', Icons.home, context),
+          _buildNavItem(1, 'Chat', Icons.chat, context),
+          _buildNavItem(2, 'Profile', Icons.person, context),
         ],
       ),
     );
@@ -49,8 +30,7 @@ class BottomNavBarWidget extends StatelessWidget {
   Widget _buildNavItem(
     int index,
     String label,
-    IconData activeIcon,
-    IconData inactiveIcon,
+    IconData icon,
     BuildContext context,
   ) {
     final bool isActive = currentIndex == index;
@@ -65,9 +45,6 @@ class BottomNavBarWidget extends StatelessWidget {
             Navigator.pushReplacementNamed(context, '/chat');
             break;
           case 2:
-            Navigator.pushReplacementNamed(context, '/report');
-            break;
-          case 3:
             Navigator.pushReplacementNamed(context, '/profile');
             break;
         }
@@ -75,28 +52,38 @@ class BottomNavBarWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: isActive ? AppPalette.primaryColor : AppPalette.white,
-              borderRadius: BorderRadius.circular(12),
-              border: isActive ? null : Border.all(color: Colors.grey),
-            ),
-            child: Icon(
-              isActive ? activeIcon : inactiveIcon,
-              color: isActive ? AppPalette.white : AppPalette.subTextColor,
-              size: 24,
-            ),
+          Icon(
+            icon,
+            color: isActive ? AppPalette.primaryColor : AppPalette.subTextColor,
+            size: 24,
           ),
-          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               color:
                   isActive ? AppPalette.primaryColor : AppPalette.subTextColor,
               fontSize: 12,
-              fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          const SizedBox(height: 4),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 4,
+            width: 50,
+            decoration: BoxDecoration(
+              color: isActive ? AppPalette.primaryColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(2),
+              boxShadow:
+                  isActive
+                      ? [
+                        BoxShadow(
+                          color: AppPalette.primaryColor,
+                          blurRadius: 3,
+                          spreadRadius: 0.2,
+                        ),
+                      ]
+                      : [],
             ),
           ),
         ],

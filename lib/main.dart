@@ -5,7 +5,6 @@ import 'package:calorisense/features/auth/presentation/pages/login_page.dart';
 import 'package:calorisense/features/chat/presentation/pages/chat_page.dart';
 import 'package:calorisense/features/home/presentation/pages/home_page.dart';
 import 'package:calorisense/features/profile/presentation/pages/profile_page.dart';
-import 'package:calorisense/features/reports/presentation/pages/report_page.dart';
 import 'package:calorisense/init_dependencies.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -50,7 +49,6 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/home': (context) => const HomePage(),
         '/chat': (context) => const ChatPage(),
-        '/report': (context) => const ReportPage(),
         '/profile': (context) => const ProfilePage(),
       },
       home: BlocSelector<AppUserCubit, AppUserState, bool>(
