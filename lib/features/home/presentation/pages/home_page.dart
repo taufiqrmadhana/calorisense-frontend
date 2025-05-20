@@ -1,4 +1,6 @@
-import 'package:calorisense/features/home/presentation/pages/today_nutrition.dart';
+import 'package:calorisense/features/chat/presentation/pages/chat_page.dart';
+import 'package:calorisense/features/home/presentation/pages/burned.dart';
+import 'package:calorisense/features/home/presentation/pages/intake.dart';
 import 'package:calorisense/features/home/presentation/widgets/action_button.dart';
 import 'package:calorisense/core/common/widgets/bottom_navbar.dart';
 import 'package:calorisense/features/home/presentation/widgets/daily_stats.dart';
@@ -16,8 +18,8 @@ class HomePage extends StatelessWidget {
     final String username = "MadGun";
     final int consumedCalories = 1250;
     final int targetCalories = 2000;
-    final int waterIntake = 5;
-    final int waterTarget = 8;
+    final int caloriesOut = 1000;
+    final int caloriesTarget = 1500;
 
     final List<Map<String, dynamic>> meals = [
       {
@@ -55,28 +57,21 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppPalette.backgroundColor,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: AppPalette.white,
         elevation: 0,
-        title: Image.asset('assets/images/image.png', height: 150),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              color: Colors.black54,
-            ),
-            onPressed: () {},
-          ),
-          const CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.grey,
-            child: Icon(Icons.person, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 16),
-        ],
+        title: GestureDetector(
+          // onTap: () {
+          //   Navigator.pushReplacement(context, HomePage.route());
+          // },
+          child: Image.asset('assets/images/image.png', height: 150),
+        ),
+
         shape: const Border(
           bottom: BorderSide(width: 1, color: AppPalette.borderColor),
         ),
       ),
+
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +108,7 @@ class HomePage extends StatelessWidget {
                         Expanded(
                           child: DailyStatsWidget(
                             icon: Icons.local_fire_department_outlined,
-                            title: 'Daily Goal',
+                            title: 'Calories Intake',
                             current: consumedCalories,
                             target: targetCalories,
                             unit: 'cal',
@@ -122,7 +117,7 @@ class HomePage extends StatelessWidget {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                TodayNutritionPage.route(),
+                                CaloriesIntakePage.route(),
                               );
                             },
                           ),
@@ -130,13 +125,19 @@ class HomePage extends StatelessWidget {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DailyStatsWidget(
-                            icon: Icons.water_drop_outlined,
-                            title: 'Water Intake',
-                            current: waterIntake,
-                            target: waterTarget,
-                            unit: 'glasses',
-                            color: Colors.blue,
-                            backgroundColor: AppPalette.lightblue,
+                            icon: Icons.directions_run,
+                            title: 'Calories Burned',
+                            current: caloriesOut,
+                            target: caloriesTarget,
+                            unit: 'cal',
+                            color: AppPalette.mediumorange,
+                            backgroundColor: AppPalette.lightorange,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                CaloriesBurnedPage.route(),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -151,17 +152,24 @@ class HomePage extends StatelessWidget {
                             label: 'Add Meal',
                             backgroundColor: AppPalette.lightgreen,
                             iconColor: AppPalette.primaryColor,
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(context, ChatPage.route());
+                            },
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: ActionButtonWidget(
-                            icon: Icons.water_drop_outlined,
-                            label: 'Add Water',
-                            backgroundColor: AppPalette.lightblue,
-                            iconColor: Colors.blue,
-                            onTap: () {},
+                            icon: Icons.directions_run,
+                            label: 'Add Activity',
+                            backgroundColor: AppPalette.lightorange,
+                            iconColor: AppPalette.mediumorange,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                CaloriesBurnedPage.route(),
+                              );
+                            },
                           ),
                         ),
                       ],

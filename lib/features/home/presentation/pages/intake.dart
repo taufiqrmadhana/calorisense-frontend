@@ -4,16 +4,16 @@ import 'package:calorisense/features/home/presentation/widgets/macro_nutrient.da
 import 'package:calorisense/features/home/presentation/widgets/meal_card.dart';
 import 'package:flutter/material.dart';
 
-class TodayNutritionPage extends StatefulWidget {
+class CaloriesIntakePage extends StatefulWidget {
   static route() =>
-      MaterialPageRoute(builder: (context) => const TodayNutritionPage());
-  const TodayNutritionPage({super.key});
+      MaterialPageRoute(builder: (context) => const CaloriesIntakePage());
+  const CaloriesIntakePage({super.key});
 
   @override
-  State<TodayNutritionPage> createState() => _TodayNutritionPageState();
+  State<CaloriesIntakePage> createState() => _CaloriesIntakePageState();
 }
 
-class _TodayNutritionPageState extends State<TodayNutritionPage> {
+class _CaloriesIntakePageState extends State<CaloriesIntakePage> {
   final int consumedCalories = 1250;
   final int targetCalories = 2000;
   @override
@@ -21,7 +21,7 @@ class _TodayNutritionPageState extends State<TodayNutritionPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Today\'s Nutrition',
+          'Calories Intake',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppPalette.white,
@@ -33,9 +33,7 @@ class _TodayNutritionPageState extends State<TodayNutritionPage> {
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight, 
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,10 +231,10 @@ class _TodayNutritionPageState extends State<TodayNutritionPage> {
 class ExpandedSection extends StatelessWidget {
   final Widget child;
 
-  const ExpandedSection({Key? key, required this.child}) : super(key: key);
+  const ExpandedSection({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(child: child); 
+    return Expanded(child: child);
   }
 }
