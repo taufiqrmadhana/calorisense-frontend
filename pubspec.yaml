@@ -41,6 +41,7 @@ dependencies:
   supabase_flutter: ^2.9.0
   flutter_bloc: ^9.1.1
   get_it: ^8.0.3
+  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   flutter_test:

@@ -12,10 +12,12 @@ class UserBubble extends StatelessWidget {
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.end, // Align to right
       children: [
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: screenWidth * 0.7),
+          constraints: BoxConstraints(
+            maxWidth: screenWidth * 0.7, // Limit width to 70% of screen
+          ),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
