@@ -7,18 +7,36 @@ import 'package:calorisense/features/home/presentation/widgets/daily_stats.dart'
 import 'package:calorisense/features/home/presentation/widgets/meal_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:calorisense/core/theme/pallete.dart';
+import 'package:calorisense/services/health_service.dart';
 
-class HomePage extends StatelessWidget {
-  static route() => MaterialPageRoute(builder: (context) => HomePage());
+class HomePage extends StatefulWidget {
+  static route() => MaterialPageRoute(builder: (_) => HomePage());
   const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+  }
+  class _HomePageState extends State<HomePage> {
+  int caloriesOut = 0;
+  final int caloriesTarget = 1500;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCalories();
+  }
+    Future<void> _loadCalories() async {
+    final total = await HealthService().getTodayCaloriesBurned();
+    if (!mounted) return;
+    setState(() => caloriesOut = total.toInt());
+  }
   @override
   Widget build(BuildContext context) {
     // Mock data - nanti diganti dari domain layer
     final String username = "MadGun";
     final int consumedCalories = 1250;
     final int targetCalories = 2000;
-    final int caloriesOut = 1000;
+    // final int caloriesOut = 1000;
     final int caloriesTarget = 1500;
 
     final List<Map<String, dynamic>> meals = [
