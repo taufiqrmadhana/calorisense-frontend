@@ -1,6 +1,7 @@
 import 'package:calorisense/core/theme/pallete.dart';
 import 'package:calorisense/features/home/presentation/widgets/daily_stats.dart';
 import 'package:flutter/material.dart';
+import 'package:calorisense/services/health_service.dart';
 
 class CaloriesBurnedPage extends StatefulWidget {
   static route() =>
@@ -12,10 +13,33 @@ class CaloriesBurnedPage extends StatefulWidget {
 }
 
 class _CaloriesBurnedPageState extends State<CaloriesBurnedPage> {
-  final int caloriesOut = 1000;
+  int caloriesOut=0;
   final int caloriesTarget = 1500;
+
+
   @override
+    void initState() {
+    super.initState();
+    // print('[initState] caloriesOut = $caloriesOut');
+    fetchCalories(); 
+    }
+
+  Future<void> fetchCalories() async {
+    // print('[fetchCalories] ▶ start');
+    final result = await HealthService().getTodayCaloriesBurned();
+    // print('[fetchCalories] ✅ got result = $result');
+    if (!mounted) {
+      // print('[fetchCalories] ⚠️ widget no longer mounted, aborting setState');
+      return;
+    }
+    setState(() {
+      caloriesOut = result.toInt();
+    });
+    // print('[fetchCalories] 🔄 after setState, caloriesOut = $caloriesOut');
+  }
+
   Widget build(BuildContext context) {
+    // print('🔥 build(): caloriesOut = $caloriesOut');
     return Scaffold(
       appBar: AppBar(
         title: const Text(

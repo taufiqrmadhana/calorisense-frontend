@@ -1,27 +1,58 @@
 import 'package:health/health.dart';
+import 'dart:io';
+
 
 class HealthService {
   final HealthFactory _health = HealthFactory();
 
   final List<HealthDataType> _types = [HealthDataType.ACTIVE_ENERGY_BURNED];
 
-  Future<bool> _ensureAuthorization() async {
-    final isAuthorized = await _health.requestAuthorization(_types);
-    if (!isAuthorized) {
-      throw Exception('Health permission not granted');
-    }
-    return true;
+Future<bool> _ensureAuthorization() async {
+  if (!Platform.isIOS) {
+    // debugPrint("❌ HealthKit not available on this platform.");
+    return false;
   }
+
+  final isAuthorized = await _health.requestAuthorization(_types);
+//   debugPrint("✅ isAuthorized: $isAuthorized");
+  
+  if (!isAuthorized) {
+    // debugPrint("❌ Health permission not granted");
+  }
+
+  return isAuthorized;
+}
+
 
   /// Total active calories burned over the past 24 hours
-  Future<double> getTodayCaloriesBurned() async {
-    await _ensureAuthorization();
-    final now = DateTime.now();
-    final start = now.subtract(const Duration(days: 1));
+Future<double> getTodayCaloriesBurned() async {
+  // 1 Request permissions
+  final authorized = await _health.requestAuthorization(_types);
+//   print('HealthKit authorized? $authorized');
 
-    final data = await _health.getHealthDataFromTypes(start, now, _types);
-    return data.fold(0.0, (sum, dp) => sum + (dp.value as double));
+  // 2 Fetch the raw data
+  final now   = DateTime.now();
+  final start = now.subtract(const Duration(days: 1));
+  final data  = await _health.getHealthDataFromTypes(start, now, _types);
+//   print('Fetched ${data.length} samples for ACTIVE_ENERGY_BURNED');
+
+  // 3 Sum them up in a double accumulator
+  double total = 0.0;
+  for (final dp in data) {
+    final hv = dp.value;
+    if (hv is NumericHealthValue) {
+      // numericValue is a num, so .toDouble() is available
+      total += hv.numericValue.toDouble();
+    } else {
+      // if you ever get other HealthValue types, handle them here
+    }
   }
+
+//   print('[getTodayCaloriesBurned] ☑️ total = $total kcal');
+  return total;
+}
+
+
 
   /// Fetch all active energy data points in the last 24 hours
   Future<List<HealthDataPoint>> getTodayCalorieDataPoints() async {
