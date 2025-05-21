@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:calorisense/core/common/widgets/bottom_navbar.dart';
 import 'package:calorisense/core/theme/pallete.dart';
 import 'package:calorisense/features/chat/presentation/widgets/user_bubble.dart';
@@ -25,7 +26,11 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   WebSocketChannel? _channel;
   bool _isProcessing = false;
-  String? _userEmail;
+  String _partialResponse = '';
+  bool _isStreaming = false;
+  final String _userEmail = "taufiqaja@gmail.com"; // Hardcoded for now
+  final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _socketSubscription;
 
   @override
   void initState() {
@@ -35,38 +40,79 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    _socketSubscription?.cancel(); // Cancel the subscription
     _channel?.sink.close();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   Future<void> _connectWebSocket() async {
-    // TODO: Replace with your actual user email retrieval logic
-    _userEmail = "taufiqaja@gmail.com"; // Replace with actual user email from auth
-    
     try {
       final wsUrl = Uri.parse('ws://localhost:8000/chat/ws/$_userEmail');
       _channel = WebSocketChannel.connect(wsUrl);
       
-      _channel!.stream.listen((message) {
+       _socketSubscription =_channel!.stream.listen((message) {
         final data = jsonDecode(message);
         
         if (data['status'] == 'processing') {
           setState(() {
             _isProcessing = true;
           });
-        } else if (data['status'] == 'completed' || data.containsKey('response')) {
+        } 
+        // Handle streaming start
+        else if (data['status'] == 'streaming_start') {
           setState(() {
-            _isProcessing = false;
+            _isStreaming = true;
+            _partialResponse = '';
+            // Add an empty bot message that will be filled with streaming tokens
             messages.add({
               'sender': 'bot',
-              'text': data['response'],
+              'text': '',
+              'streaming': 'true',
             });
           });
+          // Scroll to the bottom to show the streaming message
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        }
+        // Handle streaming tokens
+        else if (data['status'] == 'streaming_token') {
+          setState(() {
+            _partialResponse += data['token'];
+            // Update the last message with the current partial response
+            final lastIndex = messages.length - 1;
+            if (lastIndex >= 0 && messages[lastIndex]['streaming'] == 'true') {
+              messages[lastIndex]['text'] = _partialResponse;
+            }
+          });
+          // Scroll to the bottom as tokens come in
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        }
+        // Handle streaming end
+        else if (data['status'] == 'streaming_end') {
+          setState(() {
+            _isProcessing = false;
+            _isStreaming = false;
+            // Update the last message with final response
+            final lastIndex = messages.length - 1;
+            if (lastIndex >= 0 && messages[lastIndex]['streaming'] == 'true') {
+              messages[lastIndex]['text'] = data['response'];
+              messages[lastIndex].remove('streaming');
+            }
+          });
           
-          // If info was updated, you can add special handling here
+          // If info was updated, show a snackbar
           if (data['info_updated'] == true) {
-            // Optional: Show a snackbar or some visual indication
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Your ${data["intent"] ?? "information"} has been updated!'),
@@ -75,14 +121,42 @@ class _ChatPageState extends State<ChatPage> {
               ),
             );
           }
-        } else if (data['status'] == 'error') {
+        }
+        // Handle completed message (non-streaming)
+        else if (data['status'] == 'completed' || data.containsKey('response')) {
           setState(() {
             _isProcessing = false;
+            messages.add({
+              'sender': 'bot',
+              'text': data['response'],
+            });
+          });
+          
+          // If info was updated, show a snackbar
+          if (data['info_updated'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Your ${data["intent"] ?? "information"} has been updated!'),
+                backgroundColor: AppPalette.primaryColor,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+          
+          // Scroll to the bottom to show the new message
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        } 
+        else if (data['status'] == 'error') {
+          setState(() {
+            _isProcessing = false;
+            _isStreaming = false;
             messages.add({
               'sender': 'bot',
               'text': 'Sorry, there was an error processing your request. Please try again.',
             });
           });
+          // Scroll to the bottom to show the error message
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
         }
       }, onError: (error) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -93,6 +167,7 @@ class _ChatPageState extends State<ChatPage> {
         );
         setState(() {
           _isProcessing = false;
+          _isStreaming = false;
         });
       }, onDone: () {
         // Attempt to reconnect if connection is lost
@@ -100,6 +175,12 @@ class _ChatPageState extends State<ChatPage> {
       });
     } catch (e) {
       print('WebSocket connection error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('WebSocket connection error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -128,10 +209,8 @@ class _ChatPageState extends State<ChatPage> {
       'message': messageText,
     }));
     
-    // Show typing indicator
-    setState(() {
-      _isProcessing = true;
-    });
+    // Scroll to the bottom to show the user message
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   @override
@@ -147,26 +226,36 @@ class _ChatPageState extends State<ChatPage> {
           bottom: BorderSide(width: 1, color: AppPalette.borderColor),
         ),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            child: ListView.separated(
-              itemCount: messages.length + (_isProcessing ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                if (index == messages.length && _isProcessing) {
-                  // Show typing indicator
-                  return BotBubble(message: 'Thinking...', isTyping: true);
-                }
-                
-                final msg = messages[index];
-                return msg['sender'] == 'bot'
-                    ? BotBubble(message: msg['text']!)
-                    : UserBubble(message: msg['text']!);
-              },
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: ListView.separated(
+                controller: _scrollController,
+                itemCount: messages.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final msg = messages[index];
+                  return msg['sender'] == 'bot'
+                      ? BotBubble(
+                          message: msg['text']!,
+                          isTyping: msg.containsKey('streaming') && _isStreaming,
+                        )
+                      : UserBubble(message: msg['text']!);
+                },
+              ),
             ),
           ),
+          // Show typing indicator only when processing but not streaming
+          if (_isProcessing && !_isStreaming)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: BotBubble(message: 'Thinking...', isTyping: true),
+              ),
+            ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -195,7 +284,7 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       ),
                       textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
+                      onSubmitted: (_) => _isProcessing ? null : _sendMessage(),
                       enabled: !_isProcessing, // Disable input while processing
                     ),
                   ),
