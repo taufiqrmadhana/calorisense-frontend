@@ -15,7 +15,7 @@ class UserModel extends User {
     return UserModel(
       id: id ?? this.id,
       email: email ?? this.email,
-      name: name ?? this.email,
+      name: name ?? this.name,
     );
   }
 }

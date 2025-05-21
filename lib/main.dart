@@ -36,7 +36,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    context.read<AuthBloc>().add(AuthIsUserLoggedIn());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AuthBloc>().add(AuthIsUserLoggedIn());
+      }
+    });
   }
 
   @override
@@ -45,21 +49,22 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'CaloriSense',
       theme: AppTheme.lightThemeMode,
-      initialRoute: '/home',
       routes: {
         '/home': (context) => const HomePage(),
         '/chat': (context) => const ChatPage(),
         '/profile': (context) => const ProfilePage(),
       },
-      home: BlocSelector<AppUserCubit, AppUserState, bool>(
-        selector: (state) {
-          return state is AppUserLoggedIn;
-        },
-        builder: (context, isLoggedIn) {
-          if (isLoggedIn) {
+      home: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          if (state is AuthSuccess) {
             return const HomePage();
+          } else if (state is AuthFailure || state is AuthInitial) {
+            return const LoginPage();
+          } else {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
-          return const LoginPage();
         },
       ),
     );

@@ -42,6 +42,8 @@ dependencies:
   flutter_bloc: ^9.1.1
   get_it: ^8.0.3
   web_socket_channel: ^3.0.3
+  intl: ^0.20.2
+  lucide_icons: ^0.257.0
 
 dev_dependencies:
   flutter_test:
