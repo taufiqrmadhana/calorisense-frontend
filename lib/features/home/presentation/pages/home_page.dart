@@ -3,13 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-// Import RouteObserver dari main.dart (atau tempat Anda mendefinisikannya)
-// Sesuaikan path import di bawah ini jika file main.dart Anda ada di lokasi berbeda
-// Contoh: import 'package:your_app_name/main.dart';
-// Jika main.dart ada di lib/main.dart dan home_page.dart di lib/features/home/presentation/pages/home_page.dart
-// maka path-nya mungkin: import '../../../../main.dart';
-import '../../../../main.dart'; // <-- PASTIKAN PATH INI BENAR untuk mengakses routeObserver
-import 'package:calorisense/main.dart';
+import '../../../../main.dart'; 
+
 import 'package:calorisense/features/chat/presentation/pages/chat_page.dart';
 import 'package:calorisense/features/home/presentation/pages/burned.dart';
 import 'package:calorisense/features/home/presentation/pages/intake.dart';
@@ -18,60 +13,74 @@ import 'package:calorisense/core/common/widgets/bottom_navbar.dart';
 import 'package:calorisense/features/home/presentation/widgets/daily_stats.dart';
 import 'package:calorisense/core/theme/pallete.dart';
 
-
-// --- Data Models (tidak berubah) ---
 class IntakeResponse {
   final String email;
   final List<DailyIntake> intakes;
+
   IntakeResponse({required this.email, required this.intakes});
+
   factory IntakeResponse.fromJson(Map<String, dynamic> json) {
     var intakesList = json['intakes'] as List;
-    List<DailyIntake> intakesResult = intakesList.map((i) => DailyIntake.fromJson(i)).toList();
-    return IntakeResponse(email: json['email'], intakes: intakesResult);
+    List<DailyIntake> intakesResult =
+        intakesList.map((i) => DailyIntake.fromJson(i)).toList();
+    return IntakeResponse(
+      email: json['email'],
+      intakes: intakesResult,
+    );
   }
 }
+
 class DailyIntake {
   final String date;
-  final int protein;
-  final int carbohydrate;
-  final int fat;
+  final double protein;
+  final double carbohydrate;
+  final double fat;
   final List<String> foods;
-  DailyIntake({required this.date, required this.protein, required this.carbohydrate, required this.fat, required this.foods});
+
+  DailyIntake({
+    required this.date,
+    required this.protein,
+    required this.carbohydrate,
+    required this.fat,
+    required this.foods,
+  });
+
   factory DailyIntake.fromJson(Map<String, dynamic> json) {
-    var foodsList = json['foods'] as List;
-    List<String> foodsResult = foodsList.map((i) => i.toString()).toList();
+    var foodsList = json['foods'] as List?;
+    List<String> foodsResult = foodsList?.map((i) => i.toString()).toList() ?? [];
+    
     return DailyIntake(
       date: json['date']?.toString() ?? DateFormat('yyyy-MM-dd').format(DateTime(1970,1,1)),
-      protein: (json['protein'] ?? 0) as int,
-      carbohydrate: (json['carbohydrate'] ?? 0) as int,
-      fat: (json['fat'] ?? 0) as int,
+      protein: (json['protein'] as num? ?? 0.0).toDouble(),
+      carbohydrate: (json['carbohydrate'] as num? ?? 0.0).toDouble(),
+      fat: (json['fat'] as num? ?? 0.0).toDouble(),
       foods: foodsResult,
     );
   }
-  int get totalCalories => (protein * 4) + (carbohydrate * 4) + (fat * 9);
+
+  double get totalCalories => (protein * 4.0) + (carbohydrate * 4.0) + (fat * 9.0);
 }
 
-// --- API Service (tidak berubah) ---
 class IntakeApiService {
-  final String baseUrl = "http://localhost:8000"; // GANTI DENGAN URL BASE API ANDA
+  final String baseUrl = "http://localhost:8000"; 
+
   Future<IntakeResponse> getUserIntake(String email) async {
     final Uri url = Uri.parse('$baseUrl/user/intake/$email');
     try {
-      final response = await http.get(url, headers: {'Content-Type': 'application/json'});
+      final response = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+      });
+
       if (response.statusCode == 200) {
         return IntakeResponse.fromJson(jsonDecode(response.body));
       } else {
-        print('Failed to load intake data. Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
         throw Exception('Failed to load intake data: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching intake data: $e');
       throw Exception('Failed to fetch intake data: $e');
     }
   }
 }
-
 
 class HomePage extends StatefulWidget {
   static route() => MaterialPageRoute(builder: (context) => const HomePage());
@@ -81,15 +90,18 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-// 3. Gunakan RouteAware
 class _HomePageState extends State<HomePage> with RouteAware {
   final String username = "MadGun";
-  int consumedCalories = 0;
+  double consumedCalories = 0.0;
   final int targetCalories = 2000;
   final int caloriesOut = 1000;
   final int caloriesTarget = 1500;
 
   List<String> todaysFoods = [];
+  double _todaysProtein = 0.0;
+  double _todaysCarbohydrate = 0.0;
+  double _todaysFat = 0.0;
+
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -106,42 +118,23 @@ class _HomePageState extends State<HomePage> with RouteAware {
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
     if (route is PageRoute) {
-      // Subscribe ke routeObserver global yang di-import dari main.dart
       routeObserver.subscribe(this, route);
     }
   }
 
   @override
   void dispose() {
-    // Unsubscribe dari routeObserver global
     routeObserver.unsubscribe(this);
     super.dispose();
   }
 
   @override
   void didPopNext() {
-    // Dipanggil ketika halaman di atas HomePage di-pop, dan HomePage kembali terlihat.
-    // Refresh data di sini.
-    print("HomePage: Kembali ke halaman ini, me-refresh data...");
     _fetchIntakeData();
   }
 
-  // Opsional: method RouteAware lainnya jika diperlukan
-  // @override
-  // void didPush() {
-  //   // Dipanggil ketika HomePage di-push ke navigator.
-  //   // _fetchIntakeData() sudah dipanggil di initState.
-  //   print("HomePage: Halaman di-push.");
-  // }
-  //
-  // @override
-  // void didPushNext() {
-  //   // Dipanggil ketika halaman baru di-push di atas HomePage.
-  //   print("HomePage: Halaman baru di-push di atas halaman ini.");
-  // }
-
   Future<void> _fetchIntakeData() async {
-    if (!mounted) return; // Cek jika widget masih ada di tree
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -161,19 +154,28 @@ class _HomePageState extends State<HomePage> with RouteAware {
         todaysIntakeFromResponse = null; 
       }
 
-      if (!mounted) return; // Cek lagi sebelum setState
+      if (!mounted) return;
 
       if (todaysIntakeFromResponse != null) {
-        final int calculatedCalories = todaysIntakeFromResponse.totalCalories;
-        final List<String> foodsForToday = List<String>.from(todaysIntakeFromResponse.foods);
+        final DailyIntake currentDayData = todaysIntakeFromResponse;
+
+        final double calculatedCalories = currentDayData.totalCalories;
+        final List<String> foodsForToday = List<String>.from(currentDayData.foods);
+        
         setState(() {
           consumedCalories = calculatedCalories;
           todaysFoods = foodsForToday;
+          _todaysProtein = currentDayData.protein;
+          _todaysCarbohydrate = currentDayData.carbohydrate;
+          _todaysFat = currentDayData.fat;
         });
       } else {
         setState(() {
-          consumedCalories = 0;
+          consumedCalories = 0.0;
           todaysFoods = [];
+          _todaysProtein = 0.0;
+          _todaysCarbohydrate = 0.0;
+          _todaysFat = 0.0;
         });
       }
     } catch (e) {
@@ -181,7 +183,6 @@ class _HomePageState extends State<HomePage> with RouteAware {
       setState(() {
         _errorMessage = e.toString();
       });
-      print(e); 
     } finally {
       if (!mounted) return;
       setState(() {
@@ -257,7 +258,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                     child: DailyStatsWidget(
                                       icon: Icons.local_fire_department_outlined,
                                       title: 'Calories Intake',
-                                      current: consumedCalories,
+                                      current: consumedCalories.round(),
                                       target: targetCalories,
                                       unit: 'cal',
                                       color: AppPalette.primaryColor,
@@ -266,7 +267,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                         Navigator.push(
                                           context,
                                           CaloriesIntakePage.route(),
-                                        ); // .then() tidak diperlukan lagi di sini untuk refresh HomePage
+                                        );
                                       },
                                     ),
                                   ),
@@ -300,7 +301,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                       backgroundColor: AppPalette.lightgreen,
                                       iconColor: AppPalette.primaryColor,
                                       onTap: () {
-                                        Navigator.push(context, ChatPage.route()); // .then() tidak diperlukan
+                                        Navigator.push(context, ChatPage.route());
                                       },
                                     ),
                                   ),
@@ -312,8 +313,6 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                       backgroundColor: AppPalette.lightorange,
                                       iconColor: AppPalette.mediumorange,
                                       onTap: () {
-                                        // Jika CaloriesBurnedPage tidak mengubah data HomePage,
-                                        // maka tidak perlu refresh. Jika iya, RouteAware akan handle.
                                         Navigator.push(
                                           context,
                                           CaloriesBurnedPage.route(),
@@ -341,8 +340,21 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                 color: AppPalette.textColor,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            if (todaysFoods.isEmpty && !_isLoading)
+                            const SizedBox(height: 8),
+                            if (!_isLoading && (consumedCalories > 0 || todaysFoods.isNotEmpty || _todaysProtein > 0 || _todaysCarbohydrate > 0 || _todaysFat > 0))
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text("Total Protein: ${_todaysProtein.toStringAsFixed(1)}g", style: const TextStyle(fontSize: 15, color: AppPalette.darkSubTextColor)),
+                                  const SizedBox(height: 2),
+                                  Text("Total Carbohydrate: ${_todaysCarbohydrate.toStringAsFixed(1)}g", style: const TextStyle(fontSize: 15, color: AppPalette.darkSubTextColor)),
+                                  const SizedBox(height: 2),
+                                  Text("Total Fat: ${_todaysFat.toStringAsFixed(1)}g", style: const TextStyle(fontSize: 15, color: AppPalette.darkSubTextColor)),
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
+                            
+                            if (todaysFoods.isEmpty && !_isLoading && consumedCalories == 0 && _todaysProtein == 0 && _todaysCarbohydrate == 0 && _todaysFat == 0)
                               const Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 20.0),
@@ -361,13 +373,22 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                   final foodItem = todaysFoods[index];
                                   return Card(
                                     margin: const EdgeInsets.only(bottom: 8.0),
-                                    elevation: 2,
+                                    elevation: 1,
                                     child: ListTile(
-                                      leading: const Icon(Icons.fastfood_outlined, color: AppPalette.primaryColor),
-                                      title: Text(foodItem),
+                                      leading: const Icon(Icons.food_bank_outlined, color: AppPalette.primaryColor, size: 20),
+                                      title: Text(foodItem, style: const TextStyle(fontSize: 14)),
+                                      dense: true,
                                     ),
                                   );
                                 },
+                              )
+                            else if (!_isLoading && (consumedCalories > 0 || _todaysProtein > 0 || _todaysCarbohydrate > 0 || _todaysFat > 0) && todaysFoods.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 0, bottom: 16.0),
+                                child: Text(
+                                  "No specific food items listed for today's intake.",
+                                  style: TextStyle(color: AppPalette.darkSubTextColor, fontSize: 14, fontStyle: FontStyle.italic),
+                                ),
                               ),
                           ],
                         ),
