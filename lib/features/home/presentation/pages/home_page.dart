@@ -66,7 +66,7 @@ class DailyIntake {
 }
 
 class IntakeApiService {
-  final String baseUrl = "http://10.10.18.107:8000";
+  final String baseUrl = "https://calorisense.onrender.com";
 
   Future<IntakeResponse> getUserIntake(String email) async {
     final Uri url = Uri.parse('$baseUrl/user/intake/$email');
@@ -368,12 +368,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                     unit: 'cal',
                                     color: AppPalette.primaryColor,
                                     backgroundColor: AppPalette.lightgreen,
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        CaloriesIntakePage.route(),
-                                      );
-                                    },
+                                    // onPressed: () {
+                                    //   Navigator.push(
+                                    //     context,
+                                    //     CaloriesIntakePage.route(),
+                                    //   );
+                                    // },
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -386,12 +386,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                     unit: 'cal',
                                     color: AppPalette.mediumorange,
                                     backgroundColor: AppPalette.lightorange,
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        CaloriesBurnedPage.route(),
-                                      );
-                                    },
+                                    // onPressed: () {
+                                    //   Navigator.push(
+                                    //     context,
+                                    //     CaloriesBurnedPage.route(),
+                                    //   );
+                                    // },
                                   ),
                                 ),
                               ],
