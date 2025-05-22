@@ -36,27 +36,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         email: email,
         password: password,
       );
+
       if (response.user == null) {
         throw const ServerException('The user is null');
       }
 
-      // After authentication, fetch the profile data to get the user's name
       final userId = response.user!.id;
-      try {
-        final userData =
-            await supabaseClient
-                .from('profiles')
-                .select()
-                .eq('id', userId)
-                .single();
 
+      final userData =
+          await supabaseClient
+              .from('profiles')
+              .select()
+              .eq('id', userId)
+              .maybeSingle();
+
+      if (userData != null) {
         final profileModel = UserModel.fromJson(userData);
         return profileModel.copyWith(email: response.user!.email);
-      } catch (profileError) {
+      } else {
+        // fallback only if profile is truly missing
         final username = email.split('@')[0];
-        return UserModel.fromJson(
-          response.user!.toJson(),
-        ).copyWith(name: username);
+        return UserModel(id: userId, email: email, name: username);
       }
     } catch (e) {
       throw ServerException(e.toString());
