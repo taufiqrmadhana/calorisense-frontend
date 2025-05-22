@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'package:calorisense/core/common/cubits/app_user/app_user_cubit.dart';
+import 'package:calorisense/core/common/entities/user.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -63,7 +66,7 @@ class DailyIntake {
 }
 
 class IntakeApiService {
-  final String baseUrl = "http://0.0.0.0:8000";
+  final String baseUrl = "http://10.10.18.107:8000";
 
   Future<IntakeResponse> getUserIntake(String email) async {
     final Uri url = Uri.parse('$baseUrl/user/intake/$email');
@@ -93,7 +96,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with RouteAware {
-  final String username = "MadGun";
+  // final String username = "MadGun";
+  User? _currentUser;
   double consumedCalories = 0.0;
   final int targetCalories = 2000;
   final int caloriesOut = 1000;
@@ -112,7 +116,43 @@ class _HomePageState extends State<HomePage> with RouteAware {
   @override
   void initState() {
     super.initState();
-    _fetchIntakeData();
+    // Ambil data user dari AppUserCubit saat initState
+    final appUserState = context.read<AppUserCubit>().state;
+    if (appUserState is AppUserLoggedIn) {
+      _currentUser = appUserState.user;
+      if (_currentUser != null) {
+        _fetchIntakeData(_currentUser!.email); // Panggil dengan email user
+      } else {
+        // Handle jika _currentUser null meski state AppUserLoggedIn (seharusnya tidak terjadi)
+        _handleFetchError("User data not available.");
+      }
+    } else {
+      // Handle jika user tidak login saat HomePage ditampilkan
+      // Ini bisa berarti ada masalah di alur navigasi Anda
+      _handleFetchError("User not logged in.");
+    }
+  }
+
+  void _loadInitialData() {
+    final appUserState = context.read<AppUserCubit>().state;
+    if (appUserState is AppUserLoggedIn) {
+      _currentUser = appUserState.user;
+      if (_currentUser != null && _currentUser!.email.isNotEmpty) {
+        _fetchIntakeData(_currentUser!.email);
+      } else {
+        _handleFetchError("User email is not available.");
+      }
+    } else {
+      _handleFetchError("User not logged in.");
+    }
+  }
+
+  void _handleFetchError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _errorMessage = message;
+    });
   }
 
   @override
@@ -132,37 +172,57 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   @override
   void didPopNext() {
-    _fetchIntakeData();
+    // Dipanggil ketika kembali ke halaman ini
+    final appUserState = context.read<AppUserCubit>().state;
+    if (appUserState is AppUserLoggedIn) {
+      _currentUser = appUserState.user;
+      if (_currentUser != null) {
+        _fetchIntakeData(_currentUser!.email);
+      } else {
+        _handleFetchError("User data not available on navigating back.");
+      }
+    } else {
+      _handleFetchError("User not logged in on navigating back.");
+    }
   }
 
-  Future<void> _fetchIntakeData() async {
-    if (!mounted) return;
+  Future<void> _fetchIntakeData(String userEmail) async {
+    // userEmail sekarang menjadi parameter
+    if (!mounted) return; // Pemeriksaan mounted di awal
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
+
     try {
-      final String userEmail = "taufiqaja@gmail.com";
+      // Email pengguna sekarang didapatkan dari parameter,
+      // jadi baris hardcoded dihilangkan.
+      // final String userEmail = "taufiqaja@gmail.com"; // <--- HILANGKAN INI
+
+      // Gunakan userEmail dari parameter untuk memanggil API service
       final intakeResponse = await _apiService.getUserIntake(userEmail);
 
       final String todayDateString = DateFormat(
         'yyyy-MM-dd',
       ).format(DateTime.now());
-
       DailyIntake? todaysIntakeFromResponse;
+
       try {
         todaysIntakeFromResponse = intakeResponse.intakes.firstWhere(
           (intake) => intake.date == todayDateString,
         );
       } catch (e) {
+        // Jika tidak ada data untuk hari ini, biarkan todaysIntakeFromResponse null
         todaysIntakeFromResponse = null;
+        print(
+          "Info: No intake data found for today ($todayDateString). Error: $e",
+        );
       }
 
-      if (!mounted) return;
+      if (!mounted) return; // Periksa lagi sebelum setState
 
       if (todaysIntakeFromResponse != null) {
         final DailyIntake currentDayData = todaysIntakeFromResponse;
-
         final double calculatedCalories = currentDayData.totalCalories;
         final List<String> foodsForToday = List<String>.from(
           currentDayData.foods,
@@ -176,6 +236,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
           _todaysFat = currentDayData.fat;
         });
       } else {
+        // Jika tidak ada data untuk hari ini, reset nilainya
         setState(() {
           consumedCalories = 0.0;
           todaysFoods = [];
@@ -185,12 +246,19 @@ class _HomePageState extends State<HomePage> with RouteAware {
         });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return; // Periksa lagi sebelum setState
+      print("Error fetching intake data: $e");
       setState(() {
         _errorMessage = e.toString();
+        // Reset juga nilai-nilai data jika terjadi error
+        consumedCalories = 0.0;
+        todaysFoods = [];
+        _todaysProtein = 0.0;
+        _todaysCarbohydrate = 0.0;
+        _todaysFat = 0.0;
       });
     } finally {
-      if (!mounted) return;
+      if (!mounted) return; // Periksa lagi sebelum setState
       setState(() {
         _isLoading = false;
       });
@@ -199,6 +267,14 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    // Ambil state AppUserCubit untuk mendapatkan nama pengguna
+    final appUserState = context.watch<AppUserCubit>().state;
+    String displayUsername = "User";
+
+    if (appUserState is AppUserLoggedIn) {
+      displayUsername = appUserState.user.name;
+    }
+
     return Scaffold(
       backgroundColor: AppPalette.backgroundColor,
       appBar: AppBar(
@@ -229,7 +305,22 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: _fetchIntakeData,
+                        onPressed: () {
+                          // <--- PERBAIKAN DI SINI
+                          if (_currentUser != null &&
+                              _currentUser!.email.isNotEmpty) {
+                            // Jika _currentUser dan emailnya ada, panggil _fetchIntakeData dengan email tersebut
+                            _fetchIntakeData(_currentUser!.email);
+                          } else {
+                            // Jika _currentUser atau emailnya null, coba load initial data lagi.
+                            // _loadInitialData() akan mencoba mengambil user dari AppUserCubit
+                            // dan kemudian memanggil _fetchIntakeData jika berhasil.
+                            print(
+                              "DEBUG: Retry pressed, _currentUser or email is null. Calling _loadInitialData().",
+                            );
+                            _loadInitialData(); // Pastikan _loadInitialData() sudah ada seperti contoh sebelumnya
+                          }
+                        },
                         child: const Text("Retry"),
                       ),
                     ],
@@ -250,7 +341,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Hello, $username!",
+                              "Hello, $displayUsername!",
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,

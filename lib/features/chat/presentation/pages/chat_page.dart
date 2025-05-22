@@ -59,120 +59,134 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _connectWebSocket() async {
     try {
-      final wsUrl = Uri.parse('ws://localhost:8000/chat/ws/$_userEmail');
+      final wsUrl = Uri.parse('ws://10.10.18.107:8000/chat/ws/$_userEmail');
       _channel = WebSocketChannel.connect(wsUrl);
-      
-       _socketSubscription =_channel!.stream.listen((message) {
-        final data = jsonDecode(message);
-        
-        if (data['status'] == 'processing') {
-          setState(() {
-            _isProcessing = true;
-          });
-        } 
-        // Handle streaming start
-        else if (data['status'] == 'streaming_start') {
-          setState(() {
-            _isStreaming = true;
-            _partialResponse = '';
-            // Add an empty bot message that will be filled with streaming tokens
-            messages.add({
-              'sender': 'bot',
-              'text': '',
-              'streaming': 'true',
+
+      _socketSubscription = _channel!.stream.listen(
+        (message) {
+          final data = jsonDecode(message);
+
+          if (data['status'] == 'processing') {
+            setState(() {
+              _isProcessing = true;
             });
-          });
-          // Scroll to the bottom to show the streaming message
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        }
-        // Handle streaming tokens
-        else if (data['status'] == 'streaming_token') {
-          setState(() {
-            _partialResponse += data['token'];
-            // Update the last message with the current partial response
-            final lastIndex = messages.length - 1;
-            if (lastIndex >= 0 && messages[lastIndex]['streaming'] == 'true') {
-              messages[lastIndex]['text'] = _partialResponse;
+          }
+          // Handle streaming start
+          else if (data['status'] == 'streaming_start') {
+            setState(() {
+              _isStreaming = true;
+              _partialResponse = '';
+              // Add an empty bot message that will be filled with streaming tokens
+              messages.add({'sender': 'bot', 'text': '', 'streaming': 'true'});
+            });
+            // Scroll to the bottom to show the streaming message
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _scrollToBottom(),
+            );
+          }
+          // Handle streaming tokens
+          else if (data['status'] == 'streaming_token') {
+            setState(() {
+              _partialResponse += data['token'];
+              // Update the last message with the current partial response
+              final lastIndex = messages.length - 1;
+              if (lastIndex >= 0 &&
+                  messages[lastIndex]['streaming'] == 'true') {
+                messages[lastIndex]['text'] = _partialResponse;
+              }
+            });
+            // Scroll to the bottom as tokens come in
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _scrollToBottom(),
+            );
+          }
+          // Handle streaming end
+          else if (data['status'] == 'streaming_end') {
+            setState(() {
+              _isProcessing = false;
+              _isStreaming = false;
+              // Update the last message with final response
+              final lastIndex = messages.length - 1;
+              if (lastIndex >= 0 &&
+                  messages[lastIndex]['streaming'] == 'true') {
+                messages[lastIndex]['text'] = data['response'];
+                messages[lastIndex].remove('streaming');
+              }
+            });
+
+            // If info was updated, show a snackbar
+            if (data['info_updated'] == true) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Your ${data["intent"] ?? "information"} has been updated!',
+                  ),
+                  backgroundColor: AppPalette.primaryColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
             }
-          });
-          // Scroll to the bottom as tokens come in
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        }
-        // Handle streaming end
-        else if (data['status'] == 'streaming_end') {
+          }
+          // Handle completed message (non-streaming)
+          else if (data['status'] == 'completed' ||
+              data.containsKey('response')) {
+            setState(() {
+              _isProcessing = false;
+              messages.add({'sender': 'bot', 'text': data['response']});
+            });
+
+            // If info was updated, show a snackbar
+            if (data['info_updated'] == true) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Your ${data["intent"] ?? "information"} has been updated!',
+                  ),
+                  backgroundColor: AppPalette.primaryColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+
+            // Scroll to the bottom to show the new message
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _scrollToBottom(),
+            );
+          } else if (data['status'] == 'error') {
+            setState(() {
+              _isProcessing = false;
+              _isStreaming = false;
+              messages.add({
+                'sender': 'bot',
+                'text':
+                    'Sorry, there was an error processing your request. Please try again.',
+              });
+            });
+            // Scroll to the bottom to show the error message
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _scrollToBottom(),
+            );
+          }
+        },
+        onError: (error) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Connection error. Please check your internet connection.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
           setState(() {
             _isProcessing = false;
             _isStreaming = false;
-            // Update the last message with final response
-            final lastIndex = messages.length - 1;
-            if (lastIndex >= 0 && messages[lastIndex]['streaming'] == 'true') {
-              messages[lastIndex]['text'] = data['response'];
-              messages[lastIndex].remove('streaming');
-            }
           });
-          
-          // If info was updated, show a snackbar
-          if (data['info_updated'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Your ${data["intent"] ?? "information"} has been updated!'),
-                backgroundColor: AppPalette.primaryColor,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-        // Handle completed message (non-streaming)
-        else if (data['status'] == 'completed' || data.containsKey('response')) {
-          setState(() {
-            _isProcessing = false;
-            messages.add({
-              'sender': 'bot',
-              'text': data['response'],
-            });
-          });
-          
-          // If info was updated, show a snackbar
-          if (data['info_updated'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Your ${data["intent"] ?? "information"} has been updated!'),
-                backgroundColor: AppPalette.primaryColor,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-          
-          // Scroll to the bottom to show the new message
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        } 
-        else if (data['status'] == 'error') {
-          setState(() {
-            _isProcessing = false;
-            _isStreaming = false;
-            messages.add({
-              'sender': 'bot',
-              'text': 'Sorry, there was an error processing your request. Please try again.',
-            });
-          });
-          // Scroll to the bottom to show the error message
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        }
-      }, onError: (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Please check your internet connection.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isProcessing = false;
-          _isStreaming = false;
-        });
-      }, onDone: () {
-        // Attempt to reconnect if connection is lost
-        Future.delayed(const Duration(seconds: 2), _connectWebSocket);
-      });
+        },
+        onDone: () {
+          // Attempt to reconnect if connection is lost
+          Future.delayed(const Duration(seconds: 2), _connectWebSocket);
+        },
+      );
     } catch (e) {
       print('WebSocket connection error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -196,19 +210,17 @@ class _ChatPageState extends State<ChatPage> {
       _connectWebSocket();
       return;
     }
-    
+
     final messageText = _controller.text.trim();
-    
+
     setState(() {
       messages.add({'sender': 'user', 'text': messageText});
       _controller.clear();
     });
-    
+
     // Send message to WebSocket server
-    _channel!.sink.add(jsonEncode({
-      'message': messageText,
-    }));
-    
+    _channel!.sink.add(jsonEncode({'message': messageText}));
+
     // Scroll to the bottom to show the user message
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
@@ -239,9 +251,9 @@ class _ChatPageState extends State<ChatPage> {
                   final msg = messages[index];
                   return msg['sender'] == 'bot'
                       ? BotBubble(
-                          message: msg['text']!,
-                          isTyping: msg.containsKey('streaming') && _isStreaming,
-                        )
+                        message: msg['text']!,
+                        isTyping: msg.containsKey('streaming') && _isStreaming,
+                      )
                       : UserBubble(message: msg['text']!);
                 },
               ),
@@ -292,13 +304,17 @@ class _ChatPageState extends State<ChatPage> {
                   GestureDetector(
                     onTap: _isProcessing ? null : _sendMessage,
                     child: CircleAvatar(
-                      backgroundColor: _isProcessing 
-                          ? AppPalette.lightGrey 
-                          : AppPalette.primaryColor,
+                      backgroundColor:
+                          _isProcessing
+                              ? AppPalette.lightGrey
+                              : AppPalette.primaryColor,
                       child: Icon(
-                        Icons.send, 
-                        color: _isProcessing ? AppPalette.darkSubTextColor : Colors.white, 
-                        size: 20
+                        Icons.send,
+                        color:
+                            _isProcessing
+                                ? AppPalette.darkSubTextColor
+                                : Colors.white,
+                        size: 20,
                       ),
                     ),
                   ),

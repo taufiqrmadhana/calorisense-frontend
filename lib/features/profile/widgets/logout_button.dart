@@ -15,7 +15,7 @@ class LogoutButton extends StatelessWidget {
           context.read<AuthBloc>().add(AuthLogout());
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppPalette.errorColor,
+          backgroundColor: AppPalette.orange,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(

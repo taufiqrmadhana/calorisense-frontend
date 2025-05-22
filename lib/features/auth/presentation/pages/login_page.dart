@@ -6,6 +6,7 @@ import 'package:calorisense/features/auth/presentation/pages/signup_page.dart';
 import 'package:calorisense/features/auth/presentation/widgets/auth_field.dart';
 import 'package:calorisense/features/auth/presentation/widgets/auth_button.dart';
 import 'package:calorisense/features/auth/presentation/widgets/social_auth.dart';
+import 'package:calorisense/features/home/presentation/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -57,6 +58,16 @@ class _LoginState extends State<LoginPage> {
               listener: (context, state) {
                 if (state is AuthFailure) {
                   showSnackBar(context, state.message);
+                } else if (state is AuthSuccess) {
+                  // <--- TAMBAHKAN BLOK INI
+                  print(
+                    "DEBUG: LoginPage Listener - AuthSuccess! Navigating to HomePage.",
+                  );
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    HomePage.route(), // Menggunakan static method route() dari HomePage
+                    (route) => false,
+                  );
                 }
               },
               builder: (context, state) {

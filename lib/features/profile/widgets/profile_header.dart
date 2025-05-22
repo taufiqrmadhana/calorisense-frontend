@@ -7,7 +7,7 @@ class ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Later replace with dynamic data
-    const String username = "xX aZruL Xx";
+    const String username = "Mas Azril";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
