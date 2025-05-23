@@ -1,6 +1,7 @@
 import 'package:calorisense/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:calorisense/core/usecase/usecase.dart';
 import 'package:calorisense/core/common/entities/user.dart';
+import 'package:calorisense/features/auth/data/models/user_model.dart';
 import 'package:calorisense/features/auth/domain/usecases/current_user.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_login.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_logout.dart';
@@ -86,7 +87,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _emitAuthSuccess(User user, Emitter<AuthState> emit) {
-    _appUserCubit.updateUser(user);
-    emit(AuthSuccess(user));
+    // PENTING: Lakukan casting yang aman di sini.
+    // Kita tahu user yang datang dari repository adalah UserModel.
+    if (user is UserModel) {
+      _appUserCubit.updateUser(user); // Sekarang akan menerima UserModel
+      emit(AuthSuccess(user));
+    } else {
+      // Ini adalah fallback, seharusnya tidak terjadi jika alur repository benar
+      emit(
+        AuthFailure(
+          "Internal error: User type mismatch after successful auth.",
+        ),
+      );
+    }
   }
 }

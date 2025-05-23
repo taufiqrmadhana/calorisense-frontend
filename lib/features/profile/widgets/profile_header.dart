@@ -1,29 +1,53 @@
-import 'package:flutter/material.dart';
 import 'package:calorisense/core/theme/pallete.dart';
+import 'package:flutter/material.dart';
 
 class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({super.key});
+  final String userName;
+  final String userEmail;
+
+  const ProfileHeader({
+    super.key,
+    required this.userName,
+    required this.userEmail,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Later replace with dynamic data
-    const String username = "Mas Azril";
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Hello, $username!',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppPalette.textColor,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Profile page',
-          style: TextStyle(fontSize: 16, color: AppPalette.darkSubTextColor),
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 40,
+              backgroundColor: AppPalette.gradient3, // Placeholder
+              child: Text(
+                userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                style: const TextStyle(fontSize: 32, color: AppPalette.white),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppPalette.mediumblue,
+                  ),
+                ),
+                Text(
+                  userEmail,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppPalette.textColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );

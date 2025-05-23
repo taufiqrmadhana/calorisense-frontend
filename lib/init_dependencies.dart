@@ -3,6 +3,7 @@ import 'package:calorisense/features/auth/data/dataresources/auth_remote_data_so
 import 'package:calorisense/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:calorisense/features/auth/domain/repository/auth_repository.dart';
 import 'package:calorisense/features/auth/domain/usecases/current_user.dart';
+import 'package:calorisense/features/auth/domain/usecases/update_user_profile.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_login.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_logout.dart';
 import 'package:calorisense/features/auth/domain/usecases/user_signup.dart';
@@ -41,6 +42,7 @@ void _initAuth() {
     ..registerFactory(() => UserLogin(serviceLocator()))
     ..registerFactory(() => CurrentUser(serviceLocator()))
     ..registerFactory(() => UserLogout(serviceLocator()))
+    ..registerFactory(() => UpdateUserProfile(serviceLocator()))
     //Bloc
     ..registerLazySingleton(
       () => AuthBloc(

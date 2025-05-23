@@ -1,8 +1,8 @@
-// features/auth/data/repositories/auth_repository_impl.dart
 import 'package:calorisense/core/error/exceptions.dart';
 import 'package:calorisense/core/error/failures.dart';
 import 'package:calorisense/features/auth/data/dataresources/auth_remote_data_source.dart';
 import 'package:calorisense/core/common/entities/user.dart';
+import 'package:calorisense/features/auth/data/models/user_model.dart';
 import 'package:calorisense/features/auth/domain/repository/auth_repository.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
@@ -83,6 +83,27 @@ class AuthRepositoryImpl implements AuthRepository {
       return left(Failure(e.message));
     } on sb.AuthException catch (e) {
       // Bisa juga ada AuthException saat signOut
+      return left(Failure(e.message));
+    } catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> updateUserProfile(User user) async {
+    try {
+      if (user is! UserModel) {
+        return left(
+          Failure('Invalid user model type for update. Expected UserModel.'),
+        );
+      }
+      final updatedUserModel = await remoteDataSource.updateUserProfile(
+        user as UserModel,
+      );
+      return right(updatedUserModel);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    } on sb.AuthException catch (e) {
       return left(Failure(e.message));
     } catch (e) {
       return left(Failure(e.toString()));

@@ -1,6 +1,6 @@
 // features/auth/data/models/user_model.dart
 import 'package:calorisense/core/common/entities/user.dart';
-import 'package:flutter/foundation.dart'; // Untuk ValueGetter jika perlu
+import 'package:flutter/foundation.dart';
 
 class UserModel extends User {
   UserModel({
@@ -68,6 +68,25 @@ class UserModel extends User {
     };
   }
 
+  // Method baru untuk update data ke tabel 'users'
+  Map<String, dynamic> toJsonForUsersTableUpdate() {
+    return {
+      // id tidak perlu diupdate
+      // email tidak perlu diupdate
+      // name tidak perlu diupdate
+      'first_name': firstName,
+      'last_name': lastName,
+      'date_of_birth': dateOfBirth?.toIso8601String(),
+      'country': country,
+      'gender': gender,
+      'height': height,
+      'weight': weight,
+      'goal': goal,
+      'updated_at':
+          DateTime.now().toIso8601String(), // Pastikan updated_at diupdate
+    };
+  }
+
   UserModel copyWith({
     String? id,
     String? email,
@@ -86,7 +105,7 @@ class UserModel extends User {
     return UserModel(
       id: id ?? this.id,
       email: email ?? this.email,
-      name: name ?? this.name, // Perbaikan dari this.email ke this.name
+      name: name ?? this.name,
       firstName: firstName != null ? firstName() : this.firstName,
       lastName: lastName != null ? lastName() : this.lastName,
       dateOfBirth: dateOfBirth != null ? dateOfBirth() : this.dateOfBirth,

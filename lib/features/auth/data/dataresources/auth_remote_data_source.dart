@@ -16,6 +16,7 @@ abstract interface class AuthRemoteDataSource {
   });
   Future<UserModel?> getCurrentUserData();
   Future<void> signOut(); // Tambahkan signOut
+  Future<UserModel> updateUserProfile(UserModel userModel);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -180,6 +181,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerException(e.message);
     } catch (e) {
       throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> updateUserProfile(UserModel userModel) async {
+    try {
+      final updatedData = userModel.toJsonForUsersTableUpdate();
+      final response =
+          await supabaseClient
+              .from('users')
+              .update(updatedData)
+              .eq('id', userModel.id)
+              .select()
+              .maybeSingle();
+
+      if (response == null) {
+        throw const ServerException(
+          'Failed to update profile: User not found or not authorized. Check user ID and RLS policies.',
+        );
+      }
+      return UserModel.fromJson(response).copyWith(email: userModel.email);
+    } on PostgrestException catch (e) {
+      throw ServerException('Supabase Postgrest error: ${e.message}');
+    } catch (e) {
+      throw ServerException(
+        'An unexpected error occurred during profile update: ${e.toString()}',
+      );
     }
   }
 }

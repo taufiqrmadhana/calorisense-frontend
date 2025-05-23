@@ -9,18 +9,16 @@ class LogoutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: double.infinity,
+      width: 150,
       child: ElevatedButton(
         onPressed: () {
           context.read<AuthBloc>().add(AuthLogout());
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppPalette.orange,
+          backgroundColor: AppPalette.errorColor,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Logout',
