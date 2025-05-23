@@ -117,7 +117,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   // user profile
   String gender = 'male';
-  int age = 21;
+  String birthDateString = '2004 - 12 - 08'; // YYYY-MM-DD
+  final int age = 0;
   int weight = 95; // kg
   int height = 184; // cm
   final int caloriesTarget = 1500;
@@ -154,14 +155,17 @@ class _HomePageState extends State<HomePage> with RouteAware {
       _handleFetchError("User not logged in.");
     }
 
+    final hs = HealthService();
     // Compute BMR
     bmrValue =
-        calculateBMR(
-          gender: gender,
-          age: age,
-          weight: weight.toDouble(),
-          height: height.toDouble(),
-        ).toInt();
+        hs
+            .calculateBMR(
+              gender: gender,
+              age: hs.calculateAgeFromString(birthDateString),
+              weight: weight.toDouble(),
+              height: height.toDouble(),
+            )
+            .toInt();
 
     // Basal burn per 30-minute interval
     const intervalsPerDay = 48;

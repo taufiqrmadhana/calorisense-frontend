@@ -50,71 +50,32 @@ class HealthService {
     return total;
   }
 
-  /// Fetch all active energy data points in the last 24 hours
-  Future<List<HealthDataPoint>> getTodayCalorieDataPoints() async {
-    await _ensureAuthorization();
-    final now = DateTime.now();
-    final start = now.subtract(const Duration(days: 1));
-    return await _health.getHealthDataFromTypes(start, now, _types);
+  /// Mifflin–St Jeor BMR
+  double calculateBMR({
+    required String gender,
+    required int age,
+    required double weight,
+    required double height,
+  }) {
+    final g = gender.toLowerCase();
+    if (g == 'male') {
+      return 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+      return 10 * weight + 6.25 * height - 5 * age - 161;
+    }
   }
 
-  /// Group calories burned by hour (for bar chart)
-  Future<Map<int, double>> getCaloriesByHour() async {
-    final points = await getTodayCalorieDataPoints();
-    final Map<int, double> hourly = {};
+  int calculateAgeFromString(String birthDateString) {
+    final birthDate = DateTime.parse(birthDateString); // parses YYYY-MM-DD
+    final today = DateTime.now();
 
-    for (var dp in points) {
-      int hour = dp.dateFrom.hour;
-      hourly[hour] = (hourly[hour] ?? 0) + (dp.value as double);
+    int age = today.year - birthDate.year;
+
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
     }
 
-    return hourly;
-  }
-
-  /// Detect high-calorie bursts (e.g., workouts or running)
-  Future<List<HealthDataPoint>> getHighCalorieEvents({
-    double minKcal = 80.0,
-    int minMinutes = 10,
-  }) async {
-    final points = await getTodayCalorieDataPoints();
-    return points.where((dp) {
-      final duration = dp.dateTo.difference(dp.dateFrom).inMinutes;
-      final value = dp.value as double;
-      return value >= minKcal && duration >= minMinutes;
-    }).toList();
-  }
-
-  /// Get detailed data with burn rate (for analysis/debug/logs)
-  Future<List<Map<String, dynamic>>> getDetailedBurnLog() async {
-    final points = await getTodayCalorieDataPoints();
-
-    return points.map((dp) {
-      final duration = dp.dateTo.difference(dp.dateFrom).inMinutes;
-      final kcal = dp.value as double;
-      final rate = duration > 0 ? kcal / duration : 0;
-
-      return {
-        'from': dp.dateFrom,
-        'to': dp.dateTo,
-        'value': kcal,
-        'source': dp.sourceName,
-        'rate_kcal_per_min': rate,
-      };
-    }).toList();
-  }
-}
-
-/// Mifflin–St Jeor BMR
-double calculateBMR({
-  required String gender,
-  required int age,
-  required double weight,
-  required double height,
-}) {
-  final g = gender.toLowerCase();
-  if (g == 'male') {
-    return 10 * weight + 6.25 * height - 5 * age + 5;
-  } else {
-    return 10 * weight + 6.25 * height - 5 * age - 161;
+    return age;
   }
 }

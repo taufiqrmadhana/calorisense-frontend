@@ -20,7 +20,8 @@ class _CaloriesBurnedPageState extends State<CaloriesBurnedPage> {
 
   // BMR tracking
   String gender = 'male';
-  int age = 21;
+  int age = 0;
+  String birthDateString = '2004-12-08';
   int weight = 95;
   int height = 184;
   late final int bmrValue;
@@ -34,15 +35,18 @@ class _CaloriesBurnedPageState extends State<CaloriesBurnedPage> {
   @override
   void initState() {
     super.initState();
+    final hs = HealthService();
 
     // Compute BMR once
     bmrValue =
-        calculateBMR(
-          gender: gender,
-          age: age,
-          weight: weight.toDouble(),
-          height: height.toDouble(),
-        ).toInt();
+        hs
+            .calculateBMR(
+              gender: gender,
+              age: hs.calculateAgeFromString(birthDateString),
+              weight: weight.toDouble(),
+              height: height.toDouble(),
+            )
+            .toInt();
 
     // Basal per half-hour
     const intervalsPerDay = 48;
