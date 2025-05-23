@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:calorisense/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:calorisense/core/common/entities/user.dart';
@@ -15,6 +17,8 @@ import 'package:calorisense/features/home/presentation/widgets/action_button.dar
 import 'package:calorisense/core/common/widgets/bottom_navbar.dart';
 import 'package:calorisense/features/home/presentation/widgets/daily_stats.dart';
 import 'package:calorisense/core/theme/pallete.dart';
+
+import 'package:calorisense/services/health_service.dart';
 
 class IntakeResponse {
   final String email;
@@ -100,8 +104,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
   User? _currentUser;
   double consumedCalories = 0.0;
   final int targetCalories = 2000;
-  final int caloriesOut = 1000;
-  final int caloriesTarget = 1500;
+  // final int caloriesOut = 1000; <-- ga dipake
+  // final int caloriesTarget = 1500; <-- ga dipake
 
   List<String> todaysFoods = [];
   double _todaysProtein = 0.0;
@@ -110,6 +114,25 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   bool _isLoading = true;
   String? _errorMessage;
+
+  // user profile
+  String gender = 'male';
+  String birthDateString = '2004 - 12 - 08'; // YYYY-MM-DD
+  final int age = 0;
+  int weight = 95; // kg
+  int height = 184; // cm
+  final int caloriesTarget = 1500;
+
+  // BMR and basal tracking
+  late final int bmrValue;
+  double _basalAccumulated = 0;
+  late final double _basalPerInterval;
+  Timer? _basalTimer;
+  Timer? _midnightTimer;
+
+  // exercise and total burn
+  int exerciseBurn = 0;
+  int totalBurn = 0;
 
   final IntakeApiService _apiService = IntakeApiService();
 
@@ -131,6 +154,74 @@ class _HomePageState extends State<HomePage> with RouteAware {
       // Ini bisa berarti ada masalah di alur navigasi Anda
       _handleFetchError("User not logged in.");
     }
+
+    final hs = HealthService();
+    // Compute BMR
+    bmrValue =
+        hs
+            .calculateBMR(
+              gender: gender,
+              age: hs.calculateAgeFromString(birthDateString),
+              weight: weight.toDouble(),
+              height: height.toDouble(),
+            )
+            .toInt();
+
+    // Basal burn per 30-minute interval
+    const intervalsPerDay = 48;
+    _basalPerInterval = bmrValue / intervalsPerDay;
+
+    // Initialize basal accrued from midnight to now
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final elapsedIntervals = now.difference(startOfDay).inMinutes ~/ 30;
+    _basalAccumulated = elapsedIntervals * _basalPerInterval;
+
+    // Compute initial total burn
+    _updateTotalBurn();
+
+    // Start half-hourly basal updates
+    _basalTimer = Timer.periodic(const Duration(minutes: 30), (_) {
+      setState(() {
+        _basalAccumulated += _basalPerInterval;
+        _updateTotalBurn();
+      });
+    });
+
+    // Schedule reset at next midnight
+    _scheduleMidnightReset();
+
+    // Fetch exercise burn
+    _loadCalories();
+  }
+
+  void _scheduleMidnightReset() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final untilMidnight = tomorrow.difference(now);
+
+    _midnightTimer = Timer(untilMidnight, () {
+      setState(() {
+        _basalAccumulated = 0;
+        exerciseBurn = 0;
+        _updateTotalBurn();
+      });
+      _scheduleMidnightReset();
+    });
+  }
+
+  Future<void> _loadCalories() async {
+    final result = await HealthService().getTodayCaloriesBurned();
+    if (!mounted) return;
+    setState(() {
+      exerciseBurn = result.toInt();
+      _updateTotalBurn();
+    });
+  }
+
+  void _updateTotalBurn() {
+    totalBurn = _basalAccumulated.toInt() + exerciseBurn;
   }
 
   void _loadInitialData() {
@@ -167,6 +258,9 @@ class _HomePageState extends State<HomePage> with RouteAware {
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
+
+    _basalTimer?.cancel();
+    _midnightTimer?.cancel();
     super.dispose();
   }
 
@@ -368,12 +462,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                     unit: 'cal',
                                     color: AppPalette.primaryColor,
                                     backgroundColor: AppPalette.lightgreen,
-                                    // onPressed: () {
-                                    //   Navigator.push(
-                                    //     context,
-                                    //     CaloriesIntakePage.route(),
-                                    //   );
-                                    // },
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        CaloriesIntakePage.route(),
+                                      );
+                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -381,7 +475,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                   child: DailyStatsWidget(
                                     icon: Icons.directions_run,
                                     title: 'Calories Burned',
-                                    current: caloriesOut,
+                                    current: totalBurn,
                                     target: caloriesTarget,
                                     unit: 'cal',
                                     color: AppPalette.mediumorange,
