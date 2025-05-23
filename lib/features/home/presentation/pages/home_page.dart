@@ -83,7 +83,7 @@ class IntakeApiService {
       if (response.statusCode == 200) {
         return IntakeResponse.fromJson(jsonDecode(response.body));
       } else {
-        throw Exception('Failed to load intake data: ${response.statusCode}');
+        throw Exception('Failed to load intake data: ${response.statusCode} & ${response.body}');
       }
     } catch (e) {
       throw Exception('Failed to fetch intake data: $e');
@@ -117,7 +117,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   // user profile
   String gender = 'male';
-  String birthDateString = '2004 - 12 - 08'; // YYYY-MM-DD
+  String birthDateString = '2004-12-08'; // YYYY-MM-DD
   final int age = 0;
   int weight = 95; // kg
   int height = 184; // cm
