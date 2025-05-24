@@ -70,7 +70,7 @@ class DailyIntake {
 }
 
 class IntakeApiService {
-  final String baseUrl = "https://calorisense.onrender.com";
+  final String baseUrl = "https://calorisense-be.onrender.com";
 
   Future<IntakeResponse> getUserIntake(String email) async {
     final Uri url = Uri.parse('$baseUrl/user/intake/$email');
