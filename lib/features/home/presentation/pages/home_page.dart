@@ -91,6 +91,408 @@ class IntakeApiService {
   }
 }
 
+// Combined Calories Widget
+class CombinedCaloriesWidget extends StatefulWidget {
+  final int caloriesIntake;
+  final int targetCalories;
+  final int caloriesBurned;
+  final VoidCallback? onIntakeTap;
+  final VoidCallback? onBurnedTap;
+
+  const CombinedCaloriesWidget({
+    Key? key,
+    required this.caloriesIntake,
+    required this.targetCalories,
+    required this.caloriesBurned,
+    this.onIntakeTap,
+    this.onBurnedTap,
+  }) : super(key: key);
+
+  @override
+  State<CombinedCaloriesWidget> createState() => _CombinedCaloriesWidgetState();
+}
+
+class _CombinedCaloriesWidgetState extends State<CombinedCaloriesWidget>
+    with TickerProviderStateMixin {
+  late AnimationController _intakeAnimationController;
+  late AnimationController _burnedAnimationController;
+  late Animation<double> _intakeProgressAnimation;
+  late Animation<double> _burnedProgressAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _intakeAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _burnedAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _updateAnimations();
+    
+    _intakeAnimationController.forward();
+    _burnedAnimationController.forward();
+  }
+
+  void _updateAnimations() {
+    final intakeProgress = widget.targetCalories > 0 
+        ? (widget.caloriesIntake / widget.targetCalories).clamp(0.0, 1.0) 
+        : 0.0;
+    
+    _intakeProgressAnimation = Tween<double>(
+      begin: 0.0,
+      end: intakeProgress,
+    ).animate(CurvedAnimation(
+      parent: _intakeAnimationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // For burned calories, we'll show progress differently - maybe as a simple bar
+    _burnedProgressAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _burnedAnimationController,
+      curve: Curves.easeOutCubic,
+    ));
+  }
+
+  @override
+  void didUpdateWidget(CombinedCaloriesWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.caloriesIntake != widget.caloriesIntake || 
+        oldWidget.targetCalories != widget.targetCalories ||
+        oldWidget.caloriesBurned != widget.caloriesBurned) {
+      _updateAnimations();
+      _intakeAnimationController.forward(from: 0);
+      _burnedAnimationController.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _intakeAnimationController.dispose();
+    _burnedAnimationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final intakeProgress = widget.targetCalories > 0 
+        ? (widget.caloriesIntake / widget.targetCalories).clamp(0.0, 1.0) 
+        : 0.0;
+    final remaining = (widget.targetCalories - widget.caloriesIntake).clamp(0, widget.targetCalories);
+    final netCalories = widget.caloriesIntake - widget.caloriesBurned;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppPalette.primaryColor.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: AppPalette.primaryColor.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Today's Calories",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppPalette.textColor,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _getNetCaloriesColor().withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Net: ${NumberFormat('#,###').format(netCalories)} cal',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _getNetCaloriesColor(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Main stats with circular progress
+          Row(
+            children: [
+              // Intake circular progress
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: Stack(
+                  children: [
+                    // Background circle
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: CircularProgressIndicator(
+                        value: 1.0,
+                        strokeWidth: 8,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppPalette.lightgreen,
+                        ),
+                      ),
+                    ),
+                    // Progress circle
+                    AnimatedBuilder(
+                      animation: _intakeProgressAnimation,
+                      builder: (context, child) {
+                        return SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: CircularProgressIndicator(
+                            value: _intakeProgressAnimation.value,
+                            strokeWidth: 8,
+                            strokeCap: StrokeCap.round,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppPalette.primaryColor),
+                          ),
+                        );
+                      },
+                    ),
+                    // Percentage text
+                    Center(
+                      child: AnimatedBuilder(
+                        animation: _intakeProgressAnimation,
+                        builder: (context, child) {
+                          return Text(
+                            '${(_intakeProgressAnimation.value * 100).round()}%',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppPalette.primaryColor,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(width: 20),
+              
+              // Stats details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Intake
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Intake',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppPalette.darkSubTextColor,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  '${NumberFormat('#,###').format(widget.caloriesIntake)}',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppPalette.primaryColor,
+                                  ),
+                                ),
+                                Text(
+                                  ' / ${NumberFormat('#,###').format(widget.targetCalories)}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppPalette.darkSubTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: widget.onIntakeTap,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppPalette.lightgreen,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.restaurant_outlined,
+                              color: AppPalette.primaryColor,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Burned
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Burned',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppPalette.darkSubTextColor,
+                              ),
+                            ),
+                            Text(
+                              '${NumberFormat('#,###').format(widget.caloriesBurned)} cal',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppPalette.mediumorange,
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: widget.onBurnedTap,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppPalette.lightorange,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.directions_run,
+                              color: AppPalette.mediumorange,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Progress bar for remaining calories
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    remaining > 0 ? '$remaining cal remaining' : 'Goal reached!',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: remaining > 0 ? AppPalette.darkSubTextColor : Colors.green,
+                      fontWeight: remaining > 0 ? FontWeight.normal : FontWeight.w600,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getIntakeStatusColor().withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _getIntakeStatusText(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: _getIntakeStatusColor(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color: AppPalette.lightgreen,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: AnimatedBuilder(
+                  animation: _intakeProgressAnimation,
+                  builder: (context, child) {
+                    return FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: _intakeProgressAnimation.value,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppPalette.primaryColor,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getNetCaloriesColor() {
+    final netCalories = widget.caloriesIntake - widget.caloriesBurned;
+    if (netCalories < 0) return Colors.blue; // Deficit
+    if (netCalories > widget.targetCalories) return Colors.red; // Surplus
+    return Colors.green; // Balanced
+  }
+
+  Color _getIntakeStatusColor() {
+    final progress = widget.targetCalories > 0 ? widget.caloriesIntake / widget.targetCalories : 0.0;
+    if (progress >= 1.0) return Colors.green;
+    if (progress >= 0.7) return Colors.orange;
+    return Colors.red;
+  }
+
+  String _getIntakeStatusText() {
+    final progress = widget.targetCalories > 0 ? widget.caloriesIntake / widget.targetCalories : 0.0;
+    if (progress >= 1.0) return 'Complete';
+    if (progress >= 0.7) return 'Almost There';
+    return 'Keep Going';
+  }
+}
+
 class HomePage extends StatefulWidget {
   static route() => MaterialPageRoute(builder: (context) => const HomePage());
   const HomePage({super.key});
@@ -450,47 +852,27 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                 color: AppPalette.darkSubTextColor,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: DailyStatsWidget(
-                                    icon: Icons.local_fire_department_outlined,
-                                    title: 'Calories Intake',
-                                    current: consumedCalories.round(),
-                                    target: targetCalories,
-                                    unit: 'cal',
-                                    color: AppPalette.primaryColor,
-                                    backgroundColor: AppPalette.lightgreen,
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        CaloriesIntakePage.route(),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: DailyStatsWidget(
-                                    icon: Icons.directions_run,
-                                    title: 'Calories Burned',
-                                    current: totalBurn,
-                                    target: caloriesTarget,
-                                    unit: 'cal',
-                                    color: AppPalette.mediumorange,
-                                    backgroundColor: AppPalette.lightorange,
-                                    // onPressed: () {
-                                    //   Navigator.push(
-                                    //     context,
-                                    //     CaloriesBurnedPage.route(),
-                                    //   );
-                                    // },
-                                  ),
-                                ),
-                              ],
+                            const SizedBox(height: 24),
+                            
+                            // Combined calories widget
+                            CombinedCaloriesWidget(
+                              caloriesIntake: consumedCalories.round(),
+                              targetCalories: targetCalories,
+                              caloriesBurned: totalBurn,
+                              onIntakeTap: () {
+                                Navigator.push(
+                                  context,
+                                  CaloriesIntakePage.route(),
+                                );
+                              },
+                              onBurnedTap: () {
+                                Navigator.push(
+                                  context,
+                                  CaloriesBurnedPage.route(),
+                                );
+                              },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             Row(
                               children: [
                                 Expanded(
